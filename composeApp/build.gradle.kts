@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -30,6 +31,9 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
         }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -39,6 +43,15 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.gotrue.kt)
+            implementation(libs.postgrest.kt)
+            implementation(libs.realtime.kt)
+            implementation(libs.ktor.client.core)
+            implementation(libs.lifecycle.viewmodel.compose.v280)
+            implementation(libs.material.icons.extended)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.ktor.client.okhttp)
+
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
