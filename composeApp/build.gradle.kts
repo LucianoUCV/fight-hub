@@ -6,7 +6,8 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.kotlin.serialization)
+//    alias(libs.plugins.kotlin.serialization)
+    kotlin("plugin.serialization") version "2.3.21"
 }
 
 kotlin {
@@ -30,6 +31,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.ktor.client.okhttp)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -43,14 +45,17 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(libs.gotrue.kt)
+            implementation(libs.material.icons.extended)
+            implementation(project.dependencies.platform("io.github.jan-tennert.supabase:bom:3.6.0"))
+            implementation(libs.auth.kt)
             implementation(libs.postgrest.kt)
             implementation(libs.realtime.kt)
             implementation(libs.ktor.client.core)
-            implementation(libs.lifecycle.viewmodel.compose.v280)
-            implementation(libs.material.icons.extended)
             implementation(libs.kotlinx.serialization.json)
-            implementation(libs.ktor.client.okhttp)
+            implementation(libs.supabase.storage)
+            implementation(libs.peekaboo.image.picker)
+            implementation(libs.coil.network)
+            implementation(libs.coil.compose)
 
         }
         commonTest.dependencies {
