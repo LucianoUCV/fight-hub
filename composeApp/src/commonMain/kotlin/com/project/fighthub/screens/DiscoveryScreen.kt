@@ -26,7 +26,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.project.fighthub.data.model.Profile
+import kotlin.math.asin
+import kotlin.math.cos
+import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 @Composable
 fun DiscoveryScreen(
@@ -35,7 +40,9 @@ fun DiscoveryScreen(
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
     isLocationRequired: Boolean,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    userLat: Double? = userProfile?.lat,
+    userLng: Double? = userProfile?.lng
 ) {
     var offsetX by remember { mutableStateOf(0f) }
 
@@ -132,6 +139,13 @@ fun DiscoveryScreen(
                             val displayWeight = currentProfile.weight ?: "--"
                             Text("$displayHeight cm • $displayWeight kg", color = Color.LightGray, fontSize = 18.sp, fontWeight = FontWeight.Medium)
                         }
+                        val proximityText = remember(userLat, userLng, currentProfile.lat, currentProfile.lng) {
+                            formatProximity(userLat, userLng, currentProfile.lat, currentProfile.lng)
+                        }
+                        if (proximityText != null) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(proximityText, color = Color.LightGray, fontSize = 14.sp)
+                        }
                     }
                 }
             } else {
@@ -151,4 +165,23 @@ fun DiscoveryScreen(
             }
         }
     }
+}
+
+private fun formatProximity(userLat: Double?, userLng: Double?, otherLat: Double?, otherLng: Double?): String? {
+    if (userLat == null || userLng == null || otherLat == null || otherLng == null) return null
+    val distanceKm = distanceKm(userLat, userLng, otherLat, otherLng)
+    return if (distanceKm < 1) {
+        "${(distanceKm * 1000).toInt()} m away"
+    } else {
+        "${"%.1f".format(distanceKm)} km away"
+    }
+}
+
+private fun distanceKm(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
+    val earthRadiusKm = 6371.0
+    val dLat = Math.toRadians(lat2 - lat1)
+    val dLng = Math.toRadians(lng2 - lng1)
+    val a = sin(dLat / 2).pow(2.0) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLng / 2).pow(2.0)
+    val c = 2 * asin(sqrt(a))
+    return earthRadiusKm * c
 }
