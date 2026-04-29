@@ -4,53 +4,70 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.project.fighthub.viewmodels.MatchViewModel
 
 @Composable
-fun MyFightsScreen() {
-    val fights = listOf(
-        Triple("Mihai", "Won", "12 Oct 2023"),
-        Triple("Alexandru", "Lost", "05 Oct 2023"),
-        Triple("Ion", "Disputed", "01 Oct 2023")
-    )
+fun MyFightsScreen(viewModel: MatchViewModel = viewModel { MatchViewModel() }) {
+    val fights by viewModel.uiMatches.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadFights()
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Fight History", fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 24.dp))
 
-        LazyColumn {
-            items(fights) { fight ->
-                val statusColor = when(fight.second) {
-                    "Won" -> Color(0xFF4CAF50)
-                    "Lost" -> Color(0xFFF44336)
-                    else -> Color(0xFFFF9800)
-                }
+        if (fights.isEmpty()) {
+            Text("No matches yet. Swipe on discovery to find opponents!", color = Color.Gray)
+        } else {
+            LazyColumn {
+                items(fights) { match ->
+                    val isCompleted = match.status == "completed"
 
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    val (statusText, statusColor) = when {
+                        !isCompleted -> "ACTIVE" to Color(0xFFFF9800)
+                        match.didIWin == true -> "WON" to Color(0xFF4CAF50)
+                        else -> "LOST" to Color(0xFFF44336)
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
                     ) {
-                        Column {
-                            Text("vs ${fight.first}", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(fight.third, fontSize = 14.sp, color = Color.Gray)
+                        Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                Column {
+                                    Text("vs ${match.opponentName}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("Match ID: ${match.matchId.take(8)}", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                Text(statusText, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = statusColor)
+                            }
+
+                            if (match.status == "active") {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                    Button(
+                                        onClick = { viewModel.submitResult(match.matchId, iWon = true) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                                    ) { Text("I Won", color = Color.White, fontWeight = FontWeight.Bold) }
+
+                                    Button(
+                                        onClick = { viewModel.submitResult(match.matchId, iWon = false) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
+                                    ) { Text("I Lost", color = Color.White, fontWeight = FontWeight.Bold) }
+                                }
+                            }
                         }
-                        Text(
-                            text = fight.second,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = statusColor
-                        )
                     }
                 }
             }
