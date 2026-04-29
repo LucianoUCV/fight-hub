@@ -152,8 +152,8 @@ fun App(locationProvider: LocationProvider = StubLocationProvider) {
                     )
                     Screen.Profile -> ProfileScreen(
                         currentProfile = userProfile,
-                        onSaveProfile = { age, height, weight, avatarBytes ->
-                            authViewModel.saveProfile(age, height, weight, avatarBytes)
+                        onSaveProfile = { name, age, height, weight, avatarBytes ->
+                            authViewModel.saveProfile(name, age, height, weight, avatarBytes)
                         },
                         onBackClick = {
                             currentScreen = Screen.MyProfile

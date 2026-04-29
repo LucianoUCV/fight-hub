@@ -111,6 +111,14 @@ fun DiscoveryScreen(
                         .clip(RoundedCornerShape(32.dp))
                         .background(Color.DarkGray)
                 ) {
+                    if (currentProfile.avatarUrl != null) {
+                        AsyncImage(
+                            model = currentProfile.avatarUrl,
+                            contentDescription = "Profile Photo",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.9f)), startY = 500f)))
                     Column(modifier = Modifier.align(Alignment.BottomStart).padding(24.dp)) {
                         val displayName = currentProfile.name ?: "Unknown"

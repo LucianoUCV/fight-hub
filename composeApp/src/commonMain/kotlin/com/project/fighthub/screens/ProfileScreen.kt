@@ -27,13 +27,15 @@ import com.preat.peekaboo.image.picker.rememberImagePickerLauncher
 import com.preat.peekaboo.image.picker.toImageBitmap
 import com.project.fighthub.data.model.Profile
 import com.project.fighthub.ui.ProfileSlider
+import com.project.fighthub.ui.GlassTextField
 
 @Composable
 fun ProfileScreen(
     currentProfile: Profile?,
-    onSaveProfile: (Int, Int, Int, ByteArray?) -> Unit,
+    onSaveProfile: (String, Int, Int, Int, ByteArray?) -> Unit,
     onBackClick: () -> Unit
 ) {
+    var displayName by remember { mutableStateOf(currentProfile?.name ?: "") }
     var age by remember { mutableStateOf(currentProfile?.age?.toFloat() ?: 25f) }
     var height by remember { mutableStateOf(currentProfile?.height?.toFloat() ?: 175f) }
     var weight by remember { mutableStateOf(currentProfile?.weight?.toFloat() ?: 75f) }
@@ -103,6 +105,15 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(40.dp))
 
+        GlassTextField(
+            value = displayName,
+            onValueChange = { displayName = it },
+            label = "Fighter Name",
+            placeholder = "e.g. Dan Boicea"
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         ProfileSlider(label = "Age", value = age, range = 18f..60f, unit = "yrs", onValueChange = { age = it })
         ProfileSlider(label = "Height", value = height, range = 150f..220f, unit = "cm", onValueChange = { height = it })
         ProfileSlider(label = "Weight", value = weight, range = 50f..150f, unit = "kg", onValueChange = { weight = it })
@@ -110,7 +121,7 @@ fun ProfileScreen(
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
-            onClick = { onSaveProfile(age.toInt(), height.toInt(), weight.toInt(), selectedImageBytes) },
+            onClick = { onSaveProfile(displayName.trim(), age.toInt(), height.toInt(), weight.toInt(), selectedImageBytes) },
             modifier = Modifier.fillMaxWidth().height(56.dp).padding(bottom = 24.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))

@@ -11,23 +11,46 @@ import kotlinx.serialization.json.put
 
 class AuthRepository {
 
-    suspend fun signUp(name: String, email: String, pass: String): Result<Unit> {
-        return try {
-            val user = supabaseClient.auth.signUpWith(Email) {
-                this.email = email
-                this.password = pass
-            }
+    private suspend fun ensureProfileRow(name: String? = null, email: String? = null) {
+        val currentUser = supabaseClient.auth.currentUserOrNull() ?: throw Exception("Not logged in")
+        val existing = supabaseClient.postgrest["profiles"]
+            .select { filter { eq("id", currentUser.id) } }
+            .decodeList<Profile>()
 
-            val currentUser = supabaseClient.auth.currentUserOrNull()
-            if (currentUser != null) {
-                val jsonUpdate = buildJsonObject {
+        if (existing.isEmpty()) {
+            val jsonInsert = buildJsonObject {
+                put("id", currentUser.id)
+                put("email", email ?: currentUser.email ?: "")
+                if (!name.isNullOrBlank()) {
                     put("name", name)
                 }
+            }
+            supabaseClient.postgrest["profiles"].insert(jsonInsert)
+        } else if (!name.isNullOrBlank() || !email.isNullOrBlank()) {
+            val jsonUpdate = buildJsonObject {
+                if (!name.isNullOrBlank()) {
+                    put("name", name)
+                }
+                if (!email.isNullOrBlank()) {
+                    put("email", email)
+                }
+            }
+            if (jsonUpdate.isNotEmpty()) {
                 supabaseClient.postgrest["profiles"].update(jsonUpdate) {
                     filter { eq("id", currentUser.id) }
                 }
             }
+        }
+    }
 
+    suspend fun signUp(name: String, email: String, pass: String): Result<Unit> {
+        return try {
+            supabaseClient.auth.signUpWith(Email) {
+                this.email = email
+                this.password = pass
+            }
+
+            ensureProfileRow(name = name, email = email)
             Result.success(Unit)
         } catch (e: Throwable) {
             Result.failure(e)
@@ -40,14 +63,16 @@ class AuthRepository {
                 this.email = email
                 this.password = pass
             }
+            ensureProfileRow(email = email)
             Result.success(Unit)
         } catch (e: Throwable) {
             Result.failure(e)
         }
     }
 
-    suspend fun updateProfileDetails(age: Int, height: Int, weight: Int, avatarBytes: ByteArray?): Result<Unit> {
+    suspend fun updateProfileDetails(name: String, age: Int, height: Int, weight: Int, avatarBytes: ByteArray?): Result<Unit> {
         return try {
+            ensureProfileRow(name = name)
             val currentUser = supabaseClient.auth.currentUserOrNull() ?: throw Exception("Not logged in")
 
             var publicAvatarUrl: String? = null
@@ -62,6 +87,7 @@ class AuthRepository {
             }
 
             val jsonUpdate = buildJsonObject {
+                put("name", name)
                 put("age", age)
                 put("height", height)
                 put("weight", weight)
@@ -84,9 +110,23 @@ class AuthRepository {
         return try {
             val user = supabaseClient.auth.currentUserOrNull() ?: throw Exception("Not logged in")
 
-            val profile = supabaseClient.postgrest["profiles"]
+            val profiles = supabaseClient.postgrest["profiles"]
                 .select { filter { eq("id", user.id) } }
-                .decodeSingle<Profile>()
+                .decodeList<Profile>()
+
+            val profile = if (profiles.isEmpty()) {
+                val jsonInsert = buildJsonObject {
+                    put("id", user.id)
+                    put("email", user.email ?: "")
+                }
+                supabaseClient.postgrest["profiles"].insert(jsonInsert)
+
+                supabaseClient.postgrest["profiles"]
+                    .select { filter { eq("id", user.id) } }
+                    .decodeSingle<Profile>()
+            } else {
+                profiles.first()
+            }
 
             val freshProfile = profile.copy(
                 avatarUrl = profile.avatarUrl?.let {
@@ -112,27 +152,14 @@ class AuthRepository {
 
     suspend fun updateLocation(lat: Double, lng: Double): Result<Unit> {
         return try {
+            ensureProfileRow()
             val currentUser = supabaseClient.auth.currentUserOrNull() ?: throw Exception("Not logged in")
-            val existingProfiles = supabaseClient.postgrest["profiles"]
-                .select { filter { eq("id", currentUser.id) } }
-                .decodeList<Profile>()
-
-            if (existingProfiles.isEmpty()) {
-                val jsonInsert = buildJsonObject {
-                    put("id", currentUser.id)
-                    put("email", currentUser.email ?: "")
-                    put("lat", lat)
-                    put("lng", lng)
-                }
-                supabaseClient.postgrest["profiles"].insert(jsonInsert)
-            } else {
-                val jsonUpdate = buildJsonObject {
-                    put("lat", lat)
-                    put("lng", lng)
-                }
-                supabaseClient.postgrest["profiles"].update(jsonUpdate) {
-                    filter { eq("id", currentUser.id) }
-                }
+            val jsonUpdate = buildJsonObject {
+                put("lat", lat)
+                put("lng", lng)
+            }
+            supabaseClient.postgrest["profiles"].update(jsonUpdate) {
+                filter { eq("id", currentUser.id) }
             }
             Result.success(Unit)
         } catch (e: Throwable) {

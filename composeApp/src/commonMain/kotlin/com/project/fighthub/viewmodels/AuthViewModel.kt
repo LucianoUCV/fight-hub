@@ -86,10 +86,10 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun saveProfile(age: Int, height: Int, weight: Int, avatarBytes: ByteArray?) {
+    fun saveProfile(name: String, age: Int, height: Int, weight: Int, avatarBytes: ByteArray?) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
-            val result = repository.updateProfileDetails(age, height, weight, avatarBytes)
+            val result = repository.updateProfileDetails(name, age, height, weight, avatarBytes)
             if (result.isSuccess) {
                 _authState.value = AuthState.ProfileUpdated
             } else {
