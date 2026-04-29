@@ -109,4 +109,34 @@ class AuthRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun updateLocation(lat: Double, lng: Double): Result<Unit> {
+        return try {
+            val currentUser = supabaseClient.auth.currentUserOrNull() ?: throw Exception("Not logged in")
+            val existingProfiles = supabaseClient.postgrest["profiles"]
+                .select { filter { eq("id", currentUser.id) } }
+                .decodeList<Profile>()
+
+            if (existingProfiles.isEmpty()) {
+                val jsonInsert = buildJsonObject {
+                    put("id", currentUser.id)
+                    put("email", currentUser.email ?: "")
+                    put("lat", lat)
+                    put("lng", lng)
+                }
+                supabaseClient.postgrest["profiles"].insert(jsonInsert)
+            } else {
+                val jsonUpdate = buildJsonObject {
+                    put("lat", lat)
+                    put("lng", lng)
+                }
+                supabaseClient.postgrest["profiles"].update(jsonUpdate) {
+                    filter { eq("id", currentUser.id) }
+                }
+            }
+            Result.success(Unit)
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+    }
 }

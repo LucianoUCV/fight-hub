@@ -7,18 +7,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.project.fighthub.location.LocationProvider
+import com.project.fighthub.location.LocationStatus
+import com.project.fighthub.location.StubLocationProvider
 import com.project.fighthub.screens.*
 import com.project.fighthub.viewmodels.AuthViewModel
 import com.project.fighthub.viewmodels.AuthState
+import com.project.fighthub.viewmodels.DiscoveryViewModel
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.util.DebugLogger
+import kotlinx.coroutines.launch
 
 enum class Screen { Auth, Discovery, Match, Community, MyFights, Profile, MyProfile }
 
 @Composable
-fun App() {
+fun App(locationProvider: LocationProvider = StubLocationProvider) {
     setSingletonImageLoaderFactory { context ->
         ImageLoader.Builder(context)
             .components {
@@ -33,9 +38,15 @@ fun App() {
 
     val userProfile by authViewModel.userProfile.collectAsState()
 
+    val discoveryViewModel: DiscoveryViewModel = viewModel { DiscoveryViewModel() }
+    val discoveryCurrent by discoveryViewModel.current.collectAsState()
+    val isMatch by discoveryViewModel.isMatch.collectAsState()
+
     var currentScreen by remember { mutableStateOf(Screen.Auth) }
+    var isLocationRequired by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
 
     LaunchedEffect(authState) {
         when (val state = authState) {
@@ -56,6 +67,54 @@ fun App() {
                 authViewModel.resetError()
             }
             else -> {}
+        }
+    }
+
+    LaunchedEffect(currentScreen) {
+        if (currentScreen == Screen.Discovery) {
+            locationProvider.requestLocation { status ->
+                when (status) {
+                    is LocationStatus.Available -> {
+                        isLocationRequired = false
+                        authViewModel.updateLocation(status.lat, status.lng)
+                        discoveryViewModel.loadCandidates(status.lat, status.lng, radiusKm = 10.0)
+                    }
+                    LocationStatus.Disabled -> {
+                        isLocationRequired = true
+                        snackbarScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Location services are disabled. Enable location to discover nearby fighters.",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    }
+                    LocationStatus.PermissionDenied -> {
+                        isLocationRequired = true
+                        snackbarScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Location permission is required to discover nearby fighters.",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    }
+                    is LocationStatus.Error -> {
+                        isLocationRequired = true
+                        snackbarScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = status.message ?: "Unable to read location.",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(isMatch) {
+        if (isMatch) {
+            currentScreen = Screen.Match
+            discoveryViewModel.clearMatchFlag()
         }
     }
 
@@ -116,7 +175,10 @@ fun App() {
                     }
                     Screen.Discovery -> DiscoveryScreen(
                         userProfile = userProfile,
-                        onMatchInitiated = { currentScreen = Screen.Match },
+                        currentProfile = discoveryCurrent,
+                        onSwipeLeft = { discoveryViewModel.swipeLeft() },
+                        onSwipeRight = { discoveryViewModel.swipeRight() },
+                        isLocationRequired = isLocationRequired,
                         onProfileClick = { currentScreen = Screen.MyProfile }
                     )
                     Screen.Match -> MatchScreen()

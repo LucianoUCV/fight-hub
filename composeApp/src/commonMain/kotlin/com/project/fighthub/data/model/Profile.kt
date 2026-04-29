@@ -12,5 +12,7 @@ data class Profile(
     @SerialName("height") val height: Int? = null,
     @SerialName("weight") val weight: Int? = null,
     @SerialName("elo_points") val eloPoints: Int = 1000,
-    @SerialName("avatar_url") val avatarUrl: String? = null
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("lat") val lat: Double? = null,
+    @SerialName("lng") val lng: Double? = null
 )

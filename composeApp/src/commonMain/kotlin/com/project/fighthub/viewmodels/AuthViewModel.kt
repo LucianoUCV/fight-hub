@@ -99,6 +99,15 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    fun updateLocation(lat: Double, lng: Double) {
+        viewModelScope.launch {
+            val result = repository.updateLocation(lat, lng)
+            if (result.isSuccess) {
+                fetchProfile()
+            }
+        }
+    }
+
     private fun showError(message: String) {
         _authState.value = AuthState.Error(message)
     }

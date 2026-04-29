@@ -31,16 +31,17 @@ import kotlin.math.roundToInt
 @Composable
 fun DiscoveryScreen(
     userProfile: Profile?,
-    onMatchInitiated: (Profile) -> Unit,
+    currentProfile: Profile?,
+    onSwipeLeft: () -> Unit,
+    onSwipeRight: () -> Unit,
+    isLocationRequired: Boolean,
     onProfileClick: () -> Unit
 ) {
-    val dummyProfiles = listOf(
-        Profile(id = "1", email = "john@test.com", name = "John", age = 38, height = 172, weight = 73, eloPoints = 1200),
-        Profile(id = "2", email = "mike@test.com", name = "Mike", age = 29, height = 185, weight = 85, eloPoints = 1450)
-    )
-
-    var currentIndex by remember { mutableStateOf(0) }
     var offsetX by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(currentProfile?.id) {
+        offsetX = 0f
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFF0A0A0A)).padding(16.dp)) {
         Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -89,8 +90,7 @@ fun DiscoveryScreen(
                 }
             }
 
-            if (currentIndex < dummyProfiles.size) {
-                val currentProfile = dummyProfiles[currentIndex]
+            if (currentProfile != null) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -100,8 +100,8 @@ fun DiscoveryScreen(
                         .pointerInput(Unit) {
                             detectDragGestures(
                                 onDragEnd = {
-                                    if (offsetX > 250) { onMatchInitiated(currentProfile); currentIndex++ }
-                                    else if (offsetX < -250) { currentIndex++ }
+                                    if (offsetX > 250) { onSwipeRight() }
+                                    else if (offsetX < -250) { onSwipeLeft() }
                                     offsetX = 0f
                                 },
                                 onDrag = { change, dragAmount -> change.consume(); offsetX += dragAmount.x }
@@ -113,12 +113,16 @@ fun DiscoveryScreen(
                 ) {
                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.9f)), startY = 500f)))
                     Column(modifier = Modifier.align(Alignment.BottomStart).padding(24.dp)) {
-                        Text("${currentProfile.name}, ${currentProfile.age}", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Black)
+                        val displayName = currentProfile.name ?: "Unknown"
+                        val displayAge = currentProfile.age ?: "--"
+                        Text("$displayName, $displayAge", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Black)
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFFE53935), modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("${currentProfile.height} cm • ${currentProfile.weight} kg", color = Color.LightGray, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                            val displayHeight = currentProfile.height ?: "--"
+                            val displayWeight = currentProfile.weight ?: "--"
+                            Text("$displayHeight cm • $displayWeight kg", color = Color.LightGray, fontSize = 18.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -127,8 +131,13 @@ fun DiscoveryScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = Color.DarkGray, modifier = Modifier.size(64.dp))
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("You've caught up!", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        Text("Check back later for new challengers.", fontSize = 16.sp, color = Color.Gray)
+                        if (isLocationRequired) {
+                            Text("Location required", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Enable location to discover nearby fighters.", fontSize = 16.sp, color = Color.Gray)
+                        } else {
+                            Text("You've caught up!", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Check back later for new challengers.", fontSize = 16.sp, color = Color.Gray)
+                        }
                     }
                 }
             }
